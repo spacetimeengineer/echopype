@@ -465,12 +465,18 @@ def open_raw(
     if not isinstance(raw_file, str):
         raise TypeError("File path must be a string or Path")
 
+<<<<<<< Updated upstream
 
 
 
 
     #if sonar_model is None:
     #    raise ValueError("Sonar model must be specified.")
+=======
+    if sonar_model is None:
+        #TODO : This is where we would implement logic to parse some object describing the sonar model.
+        raise ValueError("Sonar model must be specified.")
+>>>>>>> Stashed changes
 
     # Check inputs
     if convert_params is None:
