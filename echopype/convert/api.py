@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Dict, Literal, Optional, Tuple, Union
 import fsspec
 from datatree import DataTree
 
+import numpy as np
 # fmt: off
 # black and isort have conflicting ideas about how this should be formatted
 from ..core import SONAR_MODELS
@@ -16,6 +17,7 @@ from ..utils import io
 from ..utils.coding import COMPRESSION_SETTINGS
 from ..utils.log import _init_logger
 from ..utils.prov import add_processing_level
+from .utils.ek_raw_io import RawSimradFile
 
 BEAM_SUBGROUP_DEFAULT = "Beam_group1"
 
@@ -97,6 +99,34 @@ def to_file(
 
     # Link path to saved file with attribute as if from open_converted
     echodata.converted_raw_path = output_file
+
+def _is_EK80(raw_file, storage_options):
+    """Parse raw data to check if it is from Simrad EK80 echosounder."""
+    with RawSimradFile(raw_file, "r", storage_options=storage_options) as fid:
+        config_datagram = fid.read(1)
+        config_datagram["timestamp"] = np.datetime64(
+            config_datagram["timestamp"].replace(tzinfo=None), "[ns]"
+        )
+
+        # Only EK80 files have configuration in self.config_datagram
+        if "configuration" in config_datagram:
+            return True
+        else:
+            return False
+        
+def _is_EK60(raw_file, storage_options):
+    """Parse raw data to check if it is from Simrad EK80 echosounder."""
+    with RawSimradFile(raw_file, "r", storage_options=storage_options) as fid:
+        config_datagram = fid.read(1)
+        config_datagram["timestamp"] = np.datetime64(
+            config_datagram["timestamp"].replace(tzinfo=None), "[ns]"
+        )
+
+        # Only EK80 files have configuration in self.config_datagram
+        if config_datagram["sounder_name"] == "ER60" or config_datagram["sounder_name"] == "EK60":
+            return True
+        else:
+            return False
 
 
 def _save_groups_to_file(echodata, output_path, engine, compress=True, **kwargs):
@@ -346,7 +376,7 @@ def _check_file(
 @add_processing_level("L1A", is_echodata=True)
 def open_raw(
     raw_file: "PathHint",
-    sonar_model: "SonarModelsHint",
+    sonar_model: "SonarModelsHint" = None,
     xml_path: Optional["PathHint"] = None,
     include_bot: bool = False,
     include_idx: bool = False,
@@ -435,14 +465,25 @@ def open_raw(
     if not isinstance(raw_file, str):
         raise TypeError("File path must be a string or Path")
 
-    if sonar_model is None:
-        raise ValueError("Sonar model must be specified.")
+
+
+
+
+    #if sonar_model is None:
+    #    raise ValueError("Sonar model must be specified.")
 
     # Check inputs
     if convert_params is None:
         convert_params = {}
     storage_options = storage_options if storage_options is not None else {}
 
+
+    if _is_EK80(raw_file, storage_options):
+        sonar_model = "EK80"
+    
+    if _is_EK60(raw_file, storage_options):
+        sonar_model = "EK60"
+        
     # Uppercased model in case people use lowercase
     sonar_model = sonar_model.upper()  # type: ignore
 
@@ -457,6 +498,9 @@ def open_raw(
         raw_file, sonar_model, xml_path, include_bot, include_idx, storage_options
     )
 
+    
+    
+    
     # Parse raw file and organize data into groups
     parser = SONAR_MODELS[sonar_model]["parser"](
         file_chk,
@@ -468,8 +512,12 @@ def open_raw(
         storage_options=storage_options,
         sonar_model=sonar_model,
     )
+    
+    
+    
     # Actually parse the raw datagrams from source file
     parser.parse_raw()
+
 
     # Direct offload to zarr and rectangularization only available for some sonar models
     # No rectangularization for other sonar models not listed below

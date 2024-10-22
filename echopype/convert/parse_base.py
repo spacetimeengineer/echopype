@@ -342,6 +342,7 @@ class ParseEK(ParseBase):
                 ping_data_dict[data_type][ch_id] = d_arr
             # -------------------------------------------------------------------
 
+
     def parse_raw(self):
         """Parse raw data file from Simrad EK60, EK80, and EA640 echosounders."""
         with RawSimradFile(self.source_file, "r", storage_options=self.storage_options) as fid:
