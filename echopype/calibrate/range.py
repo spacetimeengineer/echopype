@@ -5,9 +5,12 @@ import xarray as xr
 from ..echodata import EchoData
 from ..echodata.simrad import retrieve_correct_beam_group
 from .env_params import harmonize_env_param_time
+from ..core import SONAR_MODELS
 
 DIMENSION_ORDER = ["channel", "ping_time", "range_sample"]
 
+def range_meter_modification_handler(sonar_model):
+    return str(SONAR_MODELS[sonar_model]['parser']).split(".Parse")[1].split("'>")[0]
 
 def compute_range_AZFP(echodata: EchoData, env_params: Dict, cal_type: str) -> xr.DataArray:
     """
@@ -147,17 +150,17 @@ def compute_range_EK(
     similar to those recorded by EK60 echosounders (the "power/angle" format).
     """
     # sound_speed should exist already
-    if echodata.sonar_model in ("EK60", "ES70"):
-        ek_str = "EK60"
-    elif echodata.sonar_model in ("EK80", "ES80", "EA640"):
-        ek_str = "EK80"
-    else:
-        raise ValueError("The specified sonar_model is not supported!")
+    #if echodata.sonar_model in ("EK60", "ES70"):
+    #    ek_str = "EK60"
+    #elif echodata.sonar_model in ("EK80", "ES80", "EA640"):
+    #    ek_str = "EK80"
+    #else:
+    #    raise ValueError("The specified sonar_model is not supported!")
 
     if "sound_speed" not in env_params:
         raise RuntimeError(
             "sounds_speed not included in env_params, "
-            f"use echopype.calibrate.env_params.get_env_params_{ek_str}() to compute env_params "
+            f"use echopype.calibrate.env_params.get_env_params_{range_meter_modification_handler(echodata.sonar_model)}() to compute env_params "
         )
     else:
         sound_speed = env_params["sound_speed"]

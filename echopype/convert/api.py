@@ -465,19 +465,6 @@ def open_raw(
     if not isinstance(raw_file, str):
         raise TypeError("File path must be a string or Path")
 
-<<<<<<< Updated upstream
-
-
-
-
-    #if sonar_model is None:
-    #    raise ValueError("Sonar model must be specified.")
-=======
-    if sonar_model is None:
-        #TODO : This is where we would implement logic to parse some object describing the sonar model.
-        raise ValueError("Sonar model must be specified.")
->>>>>>> Stashed changes
-
     # Check inputs
     if convert_params is None:
         convert_params = {}
@@ -489,6 +476,14 @@ def open_raw(
     
     if _is_EK60(raw_file, storage_options):
         sonar_model = "EK60"
+        
+        
+# Automatically determining the sonar model, is effective only if all potential sonar models are considered during data parsing. 
+# In this case, we only handle EK60 and EK80 models. However, by removing the requirement to explicitly specify the sonar model, 
+# the process generally works well. The sonar model is only necessary when the user provides data that isn't recognized by the automatic sonar model parser.
+    
+    if sonar_model is None:
+        raise ValueError("Sonar model must be specified.")
         
     # Uppercased model in case people use lowercase
     sonar_model = sonar_model.upper()  # type: ignore
