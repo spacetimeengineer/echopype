@@ -113,6 +113,8 @@ class SetGroupsBase(abc.ABC):
         """
         if len(time_val) == 1 and np.isnan(time_val[0]):
             # set time_val to earliest ping_time among all channels
+            
+            
             if self.sonar_model in ["EK60", "ES70", "EK80", "ES80", "EA640"]:
                 return [np.array([v[0] for v in self.parser_obj.ping_time.values()]).min()]
             elif self.sonar_model in ["AZFP", "AZFP6"]:
