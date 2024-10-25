@@ -9,9 +9,6 @@ from ..core import SONAR_MODELS
 
 DIMENSION_ORDER = ["channel", "ping_time", "range_sample"]
 
-def range_meter_modification_handler(sonar_model):
-    return str(SONAR_MODELS[sonar_model]['parser']).split(".Parse")[1].split("'>")[0]
-
 def compute_range_AZFP(echodata: EchoData, env_params: Dict, cal_type: str) -> xr.DataArray:
     """
     Computes the range (``echo_range``) of AZFP backscatter data in meters.
@@ -149,19 +146,12 @@ def compute_range_EK(
     or as power/angle combinations (``encode_mode="power"``) in a format
     similar to those recorded by EK60 echosounders (the "power/angle" format).
     """
-    # sound_speed should exist already
-    #if echodata.sonar_model in ("EK60", "ES70"):
-    #    ek_str = "EK60"
-    #elif echodata.sonar_model in ("EK80", "ES80", "EA640"):
-    #    ek_str = "EK80"
-    #else:
-    #    raise ValueError("The specified sonar_model is not supported!")
 
     if "sound_speed" not in env_params:
         raise RuntimeError(
-            "sounds_speed not included in env_params, "
-            f"use echopype.calibrate.env_params.get_env_params_{range_meter_modification_handler(echodata.sonar_model)}() to compute env_params "
-        )
+            "sounds_speed not included in env_params, " +
+            f"use echopype.calibrate.env_params.get_env_params_"+str(SONAR_MODELS[echodata.sonar_model]['parser']).split(".Parse")[1].split("'>")[0]+f"() to compute env_params "
+            )
     else:
         sound_speed = env_params["sound_speed"]
 
@@ -172,7 +162,7 @@ def compute_range_EK(
         if chan_sel is None
         else echodata[ed_beam_group].sel(channel=chan_sel)
     )
-
+    
     # Range in meters, not modified for TVG compensation
     range_meter = beam["range_sample"] * beam["sample_interval"] * sound_speed / 2
     # make order of dims conform with the order of backscatter data
@@ -208,32 +198,8 @@ def range_mod_TVG_EK(
     ref: https://github.com/CI-CMG/pyEcholab/blob/RHT-EK80-Svf/echolab2/instruments/EK80.py#L4297-L4308  # noqa
     """
 
-    def mod_Ex60():
-        # 2-sample shift in the beginning
-        return 2 * beam["sample_interval"] * sound_speed / 2  # [frequency x range_sample]
-
-    def mod_Ex80():
-        mod = sound_speed * beam["transmit_duration_nominal"] / 4
-        if isinstance(mod, xr.DataArray) and "time1" in mod.coords:
-            mod = mod.squeeze().drop_vars("time1")
-        return mod
-
     beam = echodata[ed_beam_group]
     vend = echodata["Vendor_specific"]
 
-    # If EK60
-    if echodata.sonar_model in ["EK60", "ES70"]:
-        range_meter = range_meter - mod_Ex60()
-
-    # If EK80:
-    # - compute range first assuming all channels have Ex80 style hardware
-    # - change range for channels with Ex60 style hardware (GPT)
-    elif echodata.sonar_model in ["EK80", "ES80", "EA640"]:
-        range_meter = range_meter - mod_Ex80()
-
-        # Change range for all channels with GPT
-        if "GPT" in vend["transceiver_type"]:
-            ch_GPT = vend["transceiver_type"] == "GPT"
-            range_meter.loc[dict(channel=ch_GPT)] = range_meter.sel(channel=ch_GPT) - mod_Ex60()
-
+    range_meter = SONAR_MODELS[echodata.sonar_model]['range_meter'](range_meter, beam, vend, sound_speed)
     return range_meter

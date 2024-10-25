@@ -200,39 +200,42 @@ def _save_groups_to_file(echodata, output_path, engine, compress=True, **kwargs)
         **kwargs,
     )
 
+    SONAR_MODELS[echodata.sonar_model]['save_file_check'](echodata, output_path, engine, compress, COMPRESSION_SETTINGS, BEAM_SUBGROUP_DEFAULT, **kwargs)
+    
+    
     # /Sonar/Beam_groupX group
-    if echodata.sonar_model == "AD2CP":
-        for i in range(1, len(echodata["Sonar"]["beam_group"]) + 1):
-            io.save_file(
-                echodata[f"Sonar/Beam_group{i}"],
-                path=output_path,
-                mode="a",
-                engine=engine,
-                group=f"Sonar/Beam_group{i}",
-                compression_settings=COMPRESSION_SETTINGS[engine] if compress else None,
-                **kwargs,
-            )
-    else:
-        io.save_file(
-            echodata[f"Sonar/{BEAM_SUBGROUP_DEFAULT}"],
-            path=output_path,
-            mode="a",
-            engine=engine,
-            group=f"Sonar/{BEAM_SUBGROUP_DEFAULT}",
-            compression_settings=COMPRESSION_SETTINGS[engine] if compress else None,
-            **kwargs,
-        )
-        if echodata["Sonar/Beam_group2"] is not None:
-            # some sonar model does not produce Sonar/Beam_group2
-            io.save_file(
-                echodata["Sonar/Beam_group2"],
-                path=output_path,
-                mode="a",
-                engine=engine,
-                group="Sonar/Beam_group2",
-                compression_settings=COMPRESSION_SETTINGS[engine] if compress else None,
-                **kwargs,
-            )
+    # if echodata.sonar_model == "AD2CP":
+    #     for i in range(1, len(echodata["Sonar"]["beam_group"]) + 1):
+    #         io.save_file(
+    #             echodata[f"Sonar/Beam_group{i}"],
+    #             path=output_path,
+    #             mode="a",
+    #             engine=engine,
+    #             group=f"Sonar/Beam_group{i}",
+    #             compression_settings=COMPRESSION_SETTINGS[engine] if compress else None,
+    #             **kwargs,
+    #         )
+    # else:
+    #     io.save_file(
+    #         echodata[f"Sonar/{BEAM_SUBGROUP_DEFAULT}"],
+    #         path=output_path,
+    #         mode="a",
+    #         engine=engine,
+    #         group=f"Sonar/{BEAM_SUBGROUP_DEFAULT}",
+    #         compression_settings=COMPRESSION_SETTINGS[engine] if compress else None,
+    #         **kwargs,
+    #     )
+    #     if echodata["Sonar/Beam_group2"] is not None:
+    #         # some sonar model does not produce Sonar/Beam_group2
+    #         io.save_file(
+    #             echodata["Sonar/Beam_group2"],
+    #             path=output_path,
+    #             mode="a",
+    #             engine=engine,
+    #             group="Sonar/Beam_group2",
+    #             compression_settings=COMPRESSION_SETTINGS[engine] if compress else None,
+    #             **kwargs,
+    #         )
 
     # Vendor_specific group
     io.save_file(

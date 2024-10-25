@@ -6,6 +6,7 @@ from ..utils.log import _init_logger
 from ..utils.prov import echopype_prov_attrs, source_files_vars
 from .calibrate_azfp import CalibrateAZFP
 from .calibrate_ek import CalibrateEK60, CalibrateEK80
+from ..core import SONAR_MODELS
 
 CALIBRATOR = {
     "EK60": CalibrateEK60,
@@ -32,22 +33,11 @@ def _compute_cal(
     waveform_mode = "BB" if waveform_mode == "FM" else waveform_mode
 
     # Check on waveform_mode and encode_mode inputs
-    if echodata.sonar_model == "EK80":
-        if waveform_mode is None or encode_mode is None:
-            raise ValueError("waveform_mode and encode_mode must be specified for EK80 calibration")
-        check_input_args_combination(waveform_mode=waveform_mode, encode_mode=encode_mode)
-    elif echodata.sonar_model in ("EK60", "AZFP"):
-        if waveform_mode is not None and waveform_mode != "CW":
-            logger.warning(
-                "This sonar model transmits only narrowband signals (waveform_mode='CW'). "
-                "Calibration will be in CW mode",
-            )
-        if encode_mode is not None and encode_mode != "power":
-            logger.warning(
-                "This sonar model only record data as power or power/angle samples "
-                "(encode_mode='power'). Calibration will be done on the power samples.",
-            )
-
+    
+    SONAR_MODELS[echodata.sonar_model]['waveform_mode_check'](waveform_mode)
+    SONAR_MODELS[echodata.sonar_model]['encode_mode_check'](encode_mode)
+    
+    
     # Set up calibration object
     cal_obj = CALIBRATOR[echodata.sonar_model](
         echodata,
@@ -83,13 +73,15 @@ def _compute_cal(
             }[cal_type],
             "units": "dB",
         }
-        if echodata.sonar_model == "EK80":
-            ds[cal_type] = ds[cal_type].assign_attrs(
-                {
-                    "waveform_mode": waveform_mode,
-                    "encode_mode": encode_mode,
-                }
-            )
+        
+        
+        
+
+        
+        
+        SONAR_MODELS[echodata.sonar_model]['add_attrs_check'](cal_type, ds, waveform_mode, encode_mode)
+        
+        
 
     add_attrs(cal_type, cal_ds)
 

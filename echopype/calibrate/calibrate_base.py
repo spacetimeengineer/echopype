@@ -3,6 +3,7 @@ import abc
 from ..echodata import EchoData
 from ..utils.log import _init_logger
 from .ecs import ECSParser
+from ..core import SONAR_MODELS
 
 logger = _init_logger(__name__)
 
@@ -98,20 +99,8 @@ class CalibrateBase(abc.ABC):
         If the size is above 2 GiB, raises a warning showing a recommended workflow
         that will not overwhelm the system memory.
         """
-        # Initialize total nbytes
-        if self.echodata.sonar_model in ["EK60", "AZFP"]:
-            total_nbytes = self.echodata["Sonar/Beam_group1"]["backscatter_r"].nbytes
-        elif self.echodata.sonar_model == "EK80":
-            # Select source of backscatter data
-            beam = self.echodata[self.ed_beam_group]
-
-            # Go through waveform and encode cases
-            if (self.waveform_mode == "BB") or (
-                self.waveform_mode == "CW" and self.encode_mode == "complex"
-            ):
-                total_nbytes = beam["backscatter_r"].nbytes + beam["backscatter_i"].nbytes
-            elif self.waveform_mode == "CW" and self.encode_mode == "power":
-                total_nbytes = beam["backscatter_r"].nbytes
+        
+        total_nbytes = SONAR_MODELS[self.echodata.sonar_model]['backscatter_check'](self.echodata, self.ed_beam_group, self.waveform_mode, self.encode_mode)
 
         # Compute GigaBytes from Bytes
         total_gb = total_nbytes / (1024**3)
