@@ -3,8 +3,8 @@ name: build
 on:
   push:
     branches:
-      - dev
-      - main
+      #- dev
+      #- main
     paths-ignore: ["**/docker.yaml"]
   workflow_dispatch:
 
